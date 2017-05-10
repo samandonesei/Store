@@ -1,0 +1,157 @@
+set serveroutput on;
+
+create or replace procedure tabel_pentru (p_id in pls_integer) as
+  v_c pls_integer;
+  v_c2 pls_integer;
+  v_c3 pls_integer;
+  v_c4 pls_integer;
+  v_c5 pls_integer;
+  v_c6 pls_integer;
+  v_c7 pls_integer;
+  v_c8 pls_integer;
+  --v_string pls_integer;
+  v_string varchar2(1200);
+  v_intermediar pls_integer:=p_id;
+  v_num pls_integer;
+  v_nume varchar2(255);
+  v_variabila pls_integer;
+begin
+  v_c:=dbms_sql.open_cursor;
+  v_string:='CREATE TABLE '||'u'||v_intermediar||' (nume varchar2(255),puturos number(10,0),intrebari number(10,0),intrebari_r number(10,0),reporturi number(10,0),reporturi_g number(10,0))';
+  --dbms_output.put_line(v_string);
+  dbms_sql.parse(v_c,v_string,dbms_sql.native);
+  v_num:=dbms_sql.execute(v_c);
+  dbms_sql.close_cursor(v_c);
+  v_c2:=dbms_sql.open_cursor;
+  v_string:='INSERT INTO '||'u'||v_intermediar||' values (:nume,:puturos,:intrebari,:intrebari_r,:reporturi,:reporturi_g)';
+  dbms_sql.parse(v_c2,v_string,dbms_sql.native);
+  v_c3:=dbms_sql.open_cursor;
+  v_string:='SELECT name from users where id=:idd';
+  dbms_sql.parse(v_c3,v_string,dbms_sql.native);
+  dbms_sql.bind_variable(v_c3,':idd',v_intermediar);
+  dbms_sql.define_column(v_c3,1,v_nume,50);
+  v_num:=dbms_sql.execute(v_c3);
+  loop
+    if SYS.DBMS_SQL.FETCH_ROWS(v_c3)=0 then exit;end if;
+    dbms_sql.column_value(v_c3,1,v_nume);
+    dbms_output.put_line(v_nume);
+  end loop;
+  dbms_sql.bind_variable(v_c2,':nume',v_nume);
+  v_variabila:=laborator.check_puturos(v_intermediar);
+  dbms_output.put_line(v_variabila);
+  dbms_sql.bind_variable(v_c2,':puturos',v_variabila);
+  dbms_sql.close_cursor(v_c3);
+  v_string:='SELECT count(id) from questions where user_id=:idd';
+  v_c4:=dbms_sql.open_cursor;
+  dbms_sql.parse(v_c4,v_string,dbms_sql.native);
+  dbms_sql.bind_variable(v_c4,':idd',v_intermediar);
+  dbms_sql.define_column(v_c4,1,v_variabila);
+  v_num:=dbms_sql.execute(v_c4);
+  loop
+    if SYS.DBMS_SQL.FETCH_ROWS(v_c4)=0 then exit;end if;
+    dbms_sql.column_value(v_c4,1,v_variabila);
+  end loop;
+  dbms_output.put_line(v_variabila);
+  dbms_sql.bind_variable(v_c2,':intrebari',v_variabila);
+  dbms_sql.close_cursor(v_c4);
+  v_string:='SELECT count(id) from questions where user_id=:idd and laborator.check_relevanta(id)>0';
+  v_c5:=dbms_sql.open_cursor;
+  dbms_sql.parse(v_c5,v_string,dbms_sql.native);
+  dbms_sql.bind_variable(v_c5,':idd',v_intermediar);
+  dbms_sql.define_column(v_c5,1,v_variabila);
+  v_num:=dbms_sql.execute(v_c5);
+  loop
+    if SYS.DBMS_SQL.FETCH_ROWS(v_c5)=0 then exit;end if;
+    dbms_sql.column_value(v_c5,1,v_variabila);
+    dbms_output.put_line(v_variabila);
+  end loop;
+  dbms_sql.bind_variable(v_c2,'intrebari_r',v_variabila);
+  dbms_sql.close_cursor(v_c5);
+  v_string:='SELECT count(id) from reports where user_id=:idd';
+  v_c6:=dbms_sql.open_cursor;
+  dbms_sql.parse(v_c6,v_string,dbms_sql.native);
+  dbms_sql.bind_variable(v_c6,':idd',v_intermediar);
+  dbms_sql.define_column(v_c6,1,v_variabila);
+  v_num:=dbms_sql.execute(v_c6);
+  loop
+    if SYS.DBMS_SQL.FETCH_ROWS(v_c6)=0 then exit;end if;
+    dbms_sql.column_value(v_c6,1,v_variabila);
+    dbms_output.put_line(v_variabila);
+  end loop;
+  dbms_sql.bind_variable(v_c2,':reporturi',v_variabila);
+  dbms_sql.close_cursor(v_c6);
+  v_string:='select count(*) from reports join questions on reports.question_id=questions.id  where reports.user_id=:idd and report_resolved=1';
+  v_c7:=dbms_sql.open_cursor;
+  dbms_sql.parse(v_c7,v_string,dbms_sql.native);
+  dbms_sql.bind_variable(v_c7,':idd',v_intermediar);
+  dbms_sql.define_column(v_c7,1,v_variabila);
+  v_num:=dbms_sql.execute(v_c7);
+  loop
+    if SYS.DBMS_SQL.FETCH_ROWS(v_c7)=0 then exit;end if;
+    dbms_sql.column_value(v_c7,1,v_variabila);
+    dbms_output.put_line(v_variabila);
+  end loop;
+  dbms_sql.bind_variable(v_c2,':reporturi_g',v_variabila);
+  dbms_sql.close_cursor(v_c7);
+  v_num:=dbms_sql.execute(v_c2);
+  dbms_sql.close_cursor(v_c2);
+end;
+
+declare
+  main_cursor pls_integer;
+  v_num pls_integer;
+  v_id users.id%type;
+  v_string varchar2(255);
+begin
+  main_cursor:=dbms_sql.open_cursor;
+  v_string:='select id from (select u.id from users u join reports r on r.user_id=u.id group by u.id order by count(*) desc) where rownum<=10';
+  dbms_sql.parse(main_cursor,v_string,dbms_sql.native);
+  dbms_sql.define_column(main_cursor,1,v_id);
+  v_num:=dbms_sql.execute(main_cursor);
+  loop
+    if dbms_sql.fetch_rows(main_cursor)=0 then exit;
+    end if;
+    dbms_sql.column_value(main_cursor,1,v_id);
+    tabel_pentru(v_id);
+  end loop;
+  dbms_sql.close_cursor(main_cursor);
+end;
+declare
+  get_cursor pls_integer;
+  delete_cursor pls_integer;
+  v_num pls_integer;
+  v_id users.id%type;
+  v_string varchar2(255);
+begin
+  get_cursor:=dbms_sql.open_cursor;
+  v_string:='select id from (select u.id from users u join reports r on r.user_id=u.id group by u.id order by count(*) desc) where rownum<=10';
+  dbms_sql.parse(get_cursor,v_string,dbms_sql.native);
+  dbms_sql.define_column(get_cursor,1,v_id);
+  v_num:=dbms_sql.execute(get_cursor);
+  loop
+    if dbms_sql.fetch_rows(get_cursor)=0 then exit;
+    end if;
+    dbms_sql.column_value(get_cursor,1,v_id);
+    dbms_output.put_line(replace('u'||replace(v_id,' ',''),' ',''));
+    v_string:='drop table '||replace('u'||replace(v_id,' ',''),' ','');
+    delete_cursor:=dbms_sql.open_cursor;
+    dbms_sql.parse(delete_cursor,v_string,dbms_sql.native);
+    v_num:=dbms_sql.execute(delete_cursor);
+    dbms_Sql.close_cursor(delete_cursor);
+  end loop;
+  dbms_sql.close_cursor(get_cursor);
+end;
+
+
+drop table u105;/
+drop table u118;/
+drop table u271;/
+drop table u318;/
+drop table u366;/
+drop table u42;/
+drop table u436;/
+drop table u437;/
+drop table u526;/
+drop table u569;/
+drop table u62;/
+drop table u157;

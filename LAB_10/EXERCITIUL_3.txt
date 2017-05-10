@@ -1,0 +1,56 @@
+create or replace procedure tabelq_pentru (p_id questions.id%type) as 
+  query_str varchar2(1000);
+  v_id users.id%type;
+  v_username users.username%type;
+  v_answered pls_integer;
+  v_answered_c pls_integer;
+  v_date questions.created_at%type;
+begin
+  EXECUTE IMMEDIATE 'CREATE TABLE '||'intrebare_'||p_id||'(asker varchar2(255),answered number(10,0),answered_c number(10,0),created timestamp(6))';
+  query_str:='SELECT user_id from questions where id = :idd';
+  EXECUTE IMMEDIATE query_str into v_id using p_id;
+  query_str:='SELECT username from users where id = :idd';
+  EXECUTE IMMEDIATE query_str into v_username using v_id;
+  query_str:='SELECT asked from questions where id = :idd';
+  EXECUTE IMMEDIATE query_str into v_answered using p_id;
+  query_str:='SELECT solved from questions where id = :idd';
+  EXECUTE IMMEDIATE query_str into v_answered_c using p_id;
+  query_str:='SELECT created_at from questions where id = :idd';
+  EXECUTE IMMEDIATE query_str into v_date using p_id;
+  query_str:='INSERT INTO '||'intrebare_'||p_id||' values (:ask,:ans,:anc,:dat)';
+  EXECUTE IMMEDIATE query_str using v_username,v_answered,v_answered_c,v_date;
+end;
+
+
+declare
+  type cursorr is ref cursor;
+  curs cursorr;
+  q_query  varchar2(255);
+  v_id questions.id%type;
+  v_date varchar2(25);
+  v_interm pls_integer:=0;
+begin
+  v_date:='''2017-01-15''';
+  q_query:='select id from questions where reported>=5 and updated_at>=(DATE '||v_date||')';
+  open curs for q_query;
+  loop
+    fetch curs into v_id;
+    v_interm:=v_interm+1;
+    dbms_output.put_line(v_id);
+    tabelq_pentru(v_id);
+    exit when curs%notfound or v_interm=10;
+  end loop;
+  close curs;
+  dbms_output.put_line(v_interm);
+end;
+
+drop table intrebare_1017;/
+drop table intrebare_1046;/
+drop table intrebare_1829;/
+drop table intrebare_1835;/
+drop table intrebare_2169;/
+drop table intrebare_2267;/
+drop table intrebare_3112;/
+drop table intrebare_3343;/
+drop table intrebare_3618;/
+drop table intrebare_5299;

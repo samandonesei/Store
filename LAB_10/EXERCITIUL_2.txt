@@ -1,0 +1,44 @@
+create or replace procedure afisare_detalii (p_id in users.id%type) as
+  info_cursor pls_integer;
+  v_num pls_integer;
+  v_string varchar2(255);
+  v_nume users.name%type;
+  v_puturos pls_integer;
+  v_intrebari pls_integer;
+  v_intrebari_r pls_integer;
+  v_reporturi pls_integer;
+  v_reporturi_g pls_integer;
+begin
+  info_cursor:=dbms_sql.open_cursor;
+  v_string:='select * from '||replace('u'||replace(p_id,' ',''),' ','');
+  dbms_sql.parse(info_cursor,v_string,dbms_sql.native);
+  dbms_sql.define_column(info_cursor,1,v_nume,255);
+  dbms_sql.define_column(info_cursor,2,v_puturos);
+  dbms_sql.define_column(info_cursor,3,v_intrebari);
+  dbms_sql.define_column(info_cursor,4,v_intrebari_r);
+  dbms_sql.define_column(info_cursor,5,v_reporturi);
+  dbms_sql.define_column(info_cursor,6,v_reporturi_g);
+  v_num:=dbms_sql.execute(info_cursor);
+  loop
+    if dbms_sql.fetch_rows(info_cursor)=0 then exit;
+    end if;
+    dbms_sql.column_value(info_cursor,1,v_nume);
+    dbms_sql.column_value(info_cursor,2,v_puturos);
+    dbms_sql.column_value(info_cursor,3,v_intrebari);
+    dbms_sql.column_value(info_cursor,4,v_intrebari_r);
+    dbms_sql.column_value(info_cursor,5,v_reporturi);
+    dbms_sql.column_value(info_cursor,6,v_reporturi_g);
+    dbms_output.put_line('Numele este: '||v_nume);
+    dbms_output.put_line('Este sau nu puturos: '||v_puturos||' (1 for NO,0 for YES)');
+    dbms_output.put_line('Numarul intrebarilor puse: '||v_intrebari);
+    dbms_output.put_line('Numarul intrebarilor relevante: '||v_intrebari_r);
+    dbms_output.put_line('Numarul de reporturi date: '||v_reporturi);
+    dbms_output.put_line('Numarul de reporturi gresite: '||v_reporturi_g);
+  end loop;
+  dbms_sql.close_cursor(info_cursor);
+end;
+
+
+begin
+  afisare_detalii(105);
+end;
