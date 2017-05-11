@@ -1,0 +1,8 @@
+create or replace procedure clonare (v_nume varchar2,v_nume_c varchar2) is
+begin
+  EXECUTE IMMEDIATE 'CREATE TABLE '||v_nume_c||' as (select * from '||v_nume||')';
+end;
+begin
+  clonare('answers','answers2');
+end;
+drop table answers2;
