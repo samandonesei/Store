@@ -1,0 +1,189 @@
+set serveroutput on;
+select dbms_metadata.get_ddl('TABLE','ANSWERS') from dual;
+
+select dbms_metadata.get_ddl('FUNCTION',
+select * from user_tab_columns
+select * from all_objects where object_type in ('FUNCTION','PROCEDURE','TABLE','VIEW','TRIGGER') and owner='STUDENT'
+select * from all_objects where owner='STUDENT' and object_type='TABLE'
+
+
+select count(*) from user_tab_columns where table_name='ANSWERS'
+select * from user_tab_columns 
+declare
+  v_owner varchar2(255):='STUDENT';
+  v_inutil number;
+  v_tip varchar2(255):='TABLE';
+  v_tipcoloana dbms_sql.desc_tab;
+  v_count number;
+  v_execute varchar2(1000);
+  v_cursor number;
+  v_numar number;
+  v_data date;
+  v_timestamp varchar2(255);
+  v_string varchar2(10000);
+  v_clob clob;
+  v_char char;
+  v_create varchar2(1000):='';
+  v_create_script varchar2(10000);
+  v_insert varchar2(1000):='';
+  contor pls_integer:=0;
+  out_file utl_file.file_type;
+begin
+  out_file:=utl_file.fopen('EXPORTT','fisier.sql','W');
+  for j in (select * from all_objects where owner=v_owner and object_type=v_tip)
+  loop
+      v_create:=q'[select dbms_metadata.get_ddl('TABLE',]'||q'[']'||j.object_name||q'[']'||') from dual';
+      EXECUTE IMMEDIATE v_create into v_create_script;
+      utl_file.putf(out_file,replace(v_create_script,'CREATE TABLE "STUDENT".','CREATE TABLE ')||'\n/\n');
+      v_cursor:=dbms_sql.open_cursor;
+      v_execute:='select * from '||j.object_name||' where rownum<3';
+      dbms_sql.parse(v_cursor,v_execute,dbms_sql.native);
+      dbms_sql.describe_columns(v_cursor,v_count,v_tipcoloana);
+      dbms_output.put_line(v_count);
+      for i in 1..v_count loop
+        --dbms_output.put_line(v_tipcoloana(i).col_type);
+        if v_tipcoloana(i).col_type=2 then dbms_sql.define_column(v_cursor,i,v_numar);
+        elsif v_tipcoloana(i).col_type=12 then dbms_sql.define_column(v_cursor,i,v_data);
+        --elsif v_tipcoloana(i).col_type=1 then dbms_sql.define_column(v_cursor,i,v_string,1000);
+        --elsif v_tipcoloana(i).col_type=187 then dbms_sql.define_column(v_cursor,i,v_timestamp,1000);
+        elsif v_tipcoloana(i).col_type=112 then dbms_sql.define_column(v_cursor,i,v_clob);
+        elsif v_tipcoloana(i).col_type=96 then dbms_sql.define_column(v_cursor,i,v_char,2);
+        else dbms_sql.define_column(v_cursor,i,v_string,1000);
+        end if;
+      end loop;
+      v_inutil:=dbms_sql.execute(v_cursor);
+      while dbms_sql.fetch_rows(v_cursor)>0 loop
+        v_insert:='';
+        v_insert:=v_insert||'INSERT INTO '||j.object_name||' values(';
+        for i in 1 .. v_count loop
+          if v_tipcoloana(i).col_type=2 then 
+            dbms_sql.column_value(v_cursor,i,v_numar);
+            dbms_output.put_line(v_numar||' '||v_tipcoloana(i).col_name);
+            if contor=v_count-1 then
+              v_insert:=v_insert||v_numar||')';
+            else
+              v_insert:=v_insert||v_numar||',';
+            end if;
+          --elsif v_tipcoloana(i).col_type=1 then
+           -- dbms_sql.column_value(v_cursor,i,v_string);
+            --dbms_output.put_line(v_string||' '||v_tipcoloana(i).col_name);
+          elsif v_tipcoloana(i).col_type=12 then
+            dbms_sql.column_value(v_cursor,i,v_data);
+            dbms_output.put_line(v_data||' '||v_tipcoloana(i).col_name);
+            if contor=v_count-1 then
+              v_insert:=v_insert||q'[']'||v_data||q'[']'||')';
+            else
+              v_insert:=v_insert||q'[']'||v_data||q'[']'||',';
+            end if;
+          --elsif v_tipcoloana(i).col_type=187 then 
+           -- dbms_sql.column_value(v_cursor,i,v_timestamp);
+           -- dbms_output.put_line(v_timestamp||' '||v_tipcoloana(i).col_name);
+          elsif v_tipcoloana(i).col_type=112 then 
+            dbms_sql.column_value(v_cursor,i,v_clob);
+            dbms_output.put_line(v_clob||' '||v_tipcoloana(i).col_name);
+            if contor=v_count-1 then
+              v_insert:=v_insert||q'[q'[]'||v_clob||q'[]]'||q'[']'||')';
+            else
+              v_insert:=v_insert||q'[q'[]'||v_clob||q'[]]'||q'[']'||',';
+            end if;
+          elsif v_tipcoloana(i).col_type=96 then 
+            dbms_sql.column_value(v_cursor,i,v_char);
+            dbms_output.put_line(v_char||' '||v_tipcoloana(i).col_name);
+            if contor=v_count-1 then
+              v_insert:=v_insert||v_char||')';
+            else
+              v_insert:=v_insert||v_char||',';
+            end if;
+          else
+            dbms_sql.column_value(v_cursor,i,v_string);
+            dbms_output.put_line(v_string||' '||v_tipcoloana(i).col_name);
+            if contor=v_count-1 then
+              v_insert:=v_insert||q'[q'[]'||v_string||q'[]]'||q'[']'||')';
+              --q'[q'[Same'ala]]'||q'[']'
+            else
+              v_insert:=v_insert||q'[q'[]'||v_string||q'[]]'||q'[']'||',';
+            end if;
+          end if;
+          contor:=contor+1;
+        end loop;
+        dbms_output.put_line(v_insert);
+        utl_file.putf(out_file,v_insert||'\n/\n');
+        contor:=0;
+      end loop;
+      dbms_sql.close_cursor(v_cursor);
+  end loop;
+  for j in (select * from all_objects where object_type in ('FUNCTION','PROCEDURE','VIEW','TRIGGER') and owner='STUDENT')
+  loop
+      v_create:=q'[select dbms_metadata.get_ddl(']'||j.object_type||q'[',]'||q'[']'||j.object_name||q'[']'||') from dual';
+      EXECUTE IMMEDIATE v_create into v_create_script;
+      --dbms_output.put_line(j.object_type);
+      utl_file.putf(out_file,replace(v_create_script,'"STUDENT".','')||'\n/\n');
+  end loop;
+  utl_file.fclose(out_file);
+end;
+
+begin
+  for j in (select * from all_objects where object_type in ('FUNCTION','PROCEDURE','VIEW','TRIGGER','TABLE') and owner='STUDENT')
+  loop
+      v_create:='drop '||j.object_type||' '||j.object_name;
+      EXECUTE IMMEDIATE v_create;
+  end loop;
+end;
+
+create or replace directory EXPORTT as 'C:\Users\Zefelix\Desktop\';
+grant read on directory EXPORTT to public;
+declare
+  out_file utl_file.file_type;
+begin
+  out_file:=utl_file.fopen('EXPORTT','fisier.sql','W');
+  utl_file.putf(out_file,'text\n/\n');
+  utl_file.fclose(out_file);
+end;
+SELECT * FROM all_tab_privs WHERE grantee = 'PUBLIC' AND table_name = 'UTL_FILE';
+
+select id from ( select id,rownum rnum from (select * from answers order by id) where rownum<10) where rnum=1
+
+	select * from all_objects where owner='STUDENT' and object_type='TABLE'
+Look in DBMS_TYPES package (from my 11gr2):
+
+select text from all_source
+where owner='SYS'
+and name='DBMS_TYPES'
+and type='PACKAGE';
+select * from intermediar;
+
+declare
+  
+begin
+end;
+INSERT INTO ANSWERS values(367,36,31,SELECT TITLU_CURS FROM CURSURI WHERE TITLU_CURS LIKE '% %',1,17-10-2016 14:12:52,000000,17-10-2016 14:12:54,000000,2,17-10-2016 14:12:54,000000,17-10-2016 14:12:54,000000)
+INSERT INTO ZODIAC values(q'[q'[Same'ala]]'||q'[']','21-03-0001','20-04-0001')
+select * from zodiac
+select id from users where rownum<10 order by user_id
+select * from answers
+declare
+  v_create varchar2(255);
+  v_string varchar2(10000);
+begin
+    v_create:=q'[select dbms_metadata.get_ddl('TABLE',]'||q'[']'||'ANSWERS'||q'[']'||') from dual';
+    dbms_output.put_line(v_create);
+    EXECUTE IMMEDIATE v_create into v_string;
+    dbms_output.put_line(replace(v_string,'CREATE TABLE "STUDENT".','CREATE TABLE '));
+end;
+select dbms_metadata.get_ddl('PROCEDURE','AFISARE_DETALII') from dual
+select dbms_metadata.get_ddl('FUNCTION','SAMI') from dual
+select dbms_metadata.get_ddl('TRIGGER','ANSWERS_ID_TRG') from dual
+create or replace function sami return integer as
+begin
+  return 5;
+end;
+DECLARE
+ v VARCHAR2(1024);
+  BEGIN
+  v := q'[']';
+  DBMS_OUTPUT.PUT_LINE(v);
+  END;
+  
+  create table doar_timestamp ( timee timestamp(6))
+  insert into doar_timestamp values(to_timestamp(q'[13-10-2016 11:33:28,000000]'))
+  select * from doar_timestamp
